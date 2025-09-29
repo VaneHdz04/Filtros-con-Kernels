@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Filtros con Convolución - Estilo Polaroid</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: url('https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg/1200px-Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg') no-repeat center center fixed;
+      background-size: cover;
+      color: #333;
+      text-align: center;
+    }
+
+    h1, h2 {
+      margin: 20px;
+      font-size: 2.5em;
+      text-shadow: 3px 3px 12px rgba(0,0,0,0.7);
+      color: white;
+    }
+
+    h2 {
+      font-size: 2em;
+      margin-top: 40px;
+    }
+
+    .contenedor {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 25px;
+      padding: 20px;
+      max-width: 1600px;
+      margin: auto;
+    }
+
+    .filtro {
+      background: white;
+      border-radius: 10px;
+      padding: 15px 15px 25px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .filtro:hover {
+      transform: rotate(-1deg) scale(1.03);
+      box-shadow: 0 12px 25px rgba(0,0,0,0.85);
+    }
+
+    .filtro h3 {
+      margin-bottom: 12px;
+      font-size: 1.2em;
+      color: #111;
+      font-weight: bold;
+    }
+
+    canvas {
+      width: 100%;
+      border-radius: 5px;
+      border: 2px solid #ddd;
+      margin-bottom: 12px;
+    }
+
+    button {
+      background: #1c1c3c;
+      color: white;
+      border: none;
+      border-radius: 30px;
+      padding: 8px 15px;
+      cursor: pointer;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.3s ease, transform 0.2s ease;
+    }
+
+    button:hover {
+      background: #003366;
+      transform: scale(1.05);
+    }
+
+    button svg {
+      width: 18px;
+      height: 18px;
+      fill: white;
+    }
+
+    /* Tooltip */
+    .tooltip {
+      position: relative;
+      display: inline-block;
+    }
+
+    .tooltip .tooltip-text {
+      visibility: hidden;
+      width: 220px;
+      background: rgba(0,0,0,0.8);
+      color: #fff;
+      text-align: center;
+      border-radius: 8px;
+      padding: 8px;
+      position: absolute;
+      z-index: 1;
+      bottom: 110%;
+      left: 50%;
+      transform: translateX(-50%);
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-size: 0.9em;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+    }
+
+    .tooltip:hover .tooltip-text {
+      visibility: visible;
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <h1>Filtros aplicados con Convolución</h1>
+
+  <!-- Filtros basados en manipulación directa de los canales RGB -->
+  <h2>🎨 Filtros de Color</h2>
+  <div class="contenedor">
+    <div class="filtro"><h3>Original</h3><canvas id="canvasOriginal"></canvas><button onclick="descargar('canvasOriginal','Original')">Descargar</button></div>
+
+    <div class="filtro"><h3>Blanco y Negro</h3>
+      <div class="tooltip">
+        <canvas id="bw"></canvas>
+        <span class="tooltip-text">Convierte la imagen a escala de grises promediando R, G y B.</span>
+      </div>
+      <button onclick="descargar('bw','BlancoNegro')">Descargar</button>
+    </div>
+
+    <div class="filtro"><h3>Pop Art</h3>
+      <div class="tooltip">
+        <canvas id="pop"></canvas>
+        <span class="tooltip-text">Aumenta saturación y contraste para un efecto vibrante.</span>
+      </div>
+      <button onclick="descargar('pop','PopArt')">Descargar</button>
+    </div>
+
+    <div class="filtro"><h3>Sepia</h3>
+      <div class="tooltip">
+        <canvas id="sepia"></canvas>
+        <span class="tooltip-text">Aplica un tono cálido y envejecido mediante mezcla RGB.</span>
+      </div>
+      <button onclick="descargar('sepia','Sepia')">Descargar</button>
+    </div>
+
+    <div class="filtro"><h3>Invertido</h3>
+      <div class="tooltip">
+        <canvas id="invert"></canvas>
+        <span class="tooltip-text">Invierte los valores de color, creando un negativo.</span>
+      </div>
+      <button onclick="descargar('invert','Invertido')">Descargar</button>
+    </div>
+
+    <div class="filtro"><h3>Cold</h3>
+      <div class="tooltip">
+        <canvas id="cold"></canvas>
+        <span class="tooltip-text">Refuerza tonos azules, dando un efecto frío.</span>
+      </div>
+      <button onclick="descargar('cold','Cold')">Descargar</button>
+    </div>
+
+    <div class="filtro"><h3>Warm</h3>
+      <div class="tooltip">
+        <canvas id="warm"></canvas>
+        <span class="tooltip-text">Realza tonos rojos/naranjas, dando calidez.</span>
+      </div>
+      <button onclick="descargar('warm','Warm')">Descargar</button>
+    </div>
+  </div>
+
+  <!-- Filtros basados en kernels: detección, enfoque y convolución -->
+  <h2>🔲 Filtros de Detección y Enfoque</h2>
+  <div class="contenedor">
+    <div class="filtro"><h3>Sobel</h3>
+      <div class="tooltip">
+        <canvas id="sobel"></canvas>
+        <span class="tooltip-text">Detecta bordes mediante gradientes horizontales y verticales.</span>
+      </div>
+      <button onclick="descargar('sobel','Sobel')">Descargar</button>
+    </div>
+
+    <div class="filtro"><h3>Sharpen</h3>
+      <div class="tooltip">
+        <canvas id="sharpen"></canvas>
+        <span class="tooltip-text">Aumenta la nitidez resaltando los bordes.</span>
+      </div>
+      <button onclick="descargar('sharpen','Sharpen')">Descargar</button>
+    </div>
+
+    <div class="filtro"><h3>Emboss</h3>
+      <div class="tooltip">
+        <canvas id="emboss"></canvas>
+        <span class="tooltip-text">Crea un efecto en relieve resaltando la luz y sombra.</span>
+      </div>
+      <button onclick="descargar('emboss','Emboss')">Descargar</button>
+    </div>
+
+    <div class="filtro"><h3>Blur</h3>
+      <div class="tooltip">
+        <canvas id="blur"></canvas>
+        <span class="tooltip-text">Difumina la imagen promediando los píxeles vecinos.</span>
+      </div>
+      <button onclick="descargar('blur','Blur')">Descargar</button>
+    </div>
+
+    <div class="filtro"><h3>Edge Detection</h3>
+      <div class="tooltip">
+        <canvas id="edge"></canvas>
+        <span class="tooltip-text">Resalta bordes fuertes al detectar cambios bruscos.</span>
+      </div>
+      <button onclick="descargar('edge','EdgeDetection')">Descargar</button>
+    </div>
+
+    <div class="filtro"><h3>Outline</h3>
+      <div class="tooltip">
+        <canvas id="outline"></canvas>
+        <span class="tooltip-text">Detecta contornos usando un kernel suavizado 5x5.</span>
+      </div>
+      <button onclick="descargar('outline','Outline')">Descargar</button>
+    </div>
+  </div>
+
+  <script>
+  var image = new Image();
+  image.onload = imageLoaded;
+  image.src = "{{ url_for('static', filename='vanesa.jpeg') }}";
+
+
+  function imageLoaded(){
+    var canvasOriginal = document.getElementById('canvasOriginal');
+    var ctx = canvasOriginal.getContext("2d");
+    canvasOriginal.width = image.width;
+    canvasOriginal.height = image.height;
+    ctx.drawImage(image, 0, 0, image.width, image.height);
+
+    // Lista de filtros a aplicar
+    let filtros = ["bw","pop","sepia","invert","cold","warm",
+                   "sobel","sharpen","emboss","blur","edge","outline"];
+    filtros.forEach(f => aplicarFiltro(canvasOriginal, document.getElementById(f), f));
+  }
+
+  function aplicarFiltro(canvasFuente, canvasDestino, tipo){
+    var ctxFuente = canvasFuente.getContext("2d");
+    var imgDataFuente = ctxFuente.getImageData(0,0, canvasFuente.width, canvasFuente.height);
+    var pixelesFuente = imgDataFuente.data;
+
+    canvasDestino.width = canvasFuente.width;
+    canvasDestino.height = canvasFuente.height;
+    var ctxDestino = canvasDestino.getContext("2d");
+    var imgDataDestino = ctxDestino.createImageData(canvasDestino.width, canvasDestino.height);
+    var pixelesDestino = imgDataDestino.data;
+
+    // -------------------
+    // KERNELS DE DETECCIÓN Y ENFOQUE (3x3 y 5x5)
+    // -------------------
+    var sobelV = [
+      [-1, 0, 1],
+      [-2, 0, 2],
+      [-1, 0, 1]
+    ];
+    var sobelH = [
+      [-1, -2, -1],
+      [ 0,  0,  0],
+      [ 1,  2,  1]
+    ];
+    var sharpen = [
+      [ 0,-1, 0],
+      [-1, 5,-1],
+      [ 0,-1, 0]
+    ];
+    var emboss = [
+      [-2,-1, 0],
+      [-1, 1, 1],
+      [ 0, 1, 2]
+    ];
+    var blur = [
+  [1,1,1,1,1,1,1],
+  [1,1,1,1,1,1,1],
+  [1,1,1,1,1,1,1],
+  [1,1,1,1,1,1,1],
+  [1,1,1,1,1,1,1],
+  [1,1,1,1,1,1,1],
+  [1,1,1,1,1,1,1]
+];
+
+    var edge = [
+      [-1,-1,-1],
+      [-1, 8,-1],
+      [-1,-1,-1]
+    ];
+    var outline = [
+      [1, 4, 6, 4, 1],
+      [4,16,24,16, 4],
+      [6,24,36,24, 6],
+      [4,16,24,16, 4],
+      [1, 4, 6, 4, 1]
+    ]; 
+
+    // -------------------
+    // KERNELS DE COLOR (manipulación directa de RGB)
+    // -------------------
+    var kernelsColor = {
+      "bw": [
+        [0.333,0.333,0.333],
+        [0.333,0.333,0.333],
+        [0.333,0.333,0.333]
+      ],
+      "sepia": [
+        [0.393,0.769,0.189],
+        [0.349,0.686,0.168],
+        [0.272,0.534,0.131]
+      ],
+      "invert": [
+        [-1,0,0],
+        [0,-1,0],
+        [0,0,-1] // con offset +255
+      ],
+      "pop": [
+        [1.5,0,0],
+        [0,1.5,0],
+        [0,0,1.5]
+      ],
+      "cold": [
+        [0.9,0,0],
+        [0,1.1,0],
+        [0,0,1.3]
+      ],
+      "warm": [
+        [1.3,0,0],
+        [0,1.1,0],
+        [0,0,0.9]
+      ]
+    };
+
+    // -------------------
+    // FUNCIONES AUXILIARES DE APLICACIÓN DE KERNEL
+    // -------------------
+
+    // Aplica un kernel 3x3
+    function aplicarKernel(x,y,kernel,divisor=1,offset=0){
+      let r=0,g=0,b=0;
+      for (let ky=-1; ky<=1; ky++){
+        for (let kx=-1; kx<=1; kx++){
+          let pos = (((y+ky)*canvasFuente.width)+(x+kx))*4;
+          r += pixelesFuente[pos]*kernel[ky+1][kx+1];
+          g += pixelesFuente[pos+1]*kernel[ky+1][kx+1];
+          b += pixelesFuente[pos+2]*kernel[ky+1][kx+1];
+        }
+      }
+      r = Math.min(255,Math.max(0,(r/divisor)+offset));
+      g = Math.min(255,Math.max(0,(g/divisor)+offset));
+      b = Math.min(255,Math.max(0,(b/divisor)+offset));
+      return [r,g,b];
+    }
+
+    // Aplica un kernel 5x5
+    function aplicarKernel5x5(x,y,kernel,divisor=1,offset=0){
+      let r=0,g=0,b=0;
+      for (let ky=-2; ky<=2; ky++){
+        for (let kx=-2; kx<=2; kx++){
+          let pos = (((y+ky)*canvasFuente.width)+(x+kx))*4;
+          r += pixelesFuente[pos]*kernel[ky+2][kx+2];
+          g += pixelesFuente[pos+1]*kernel[ky+2][kx+2];
+          b += pixelesFuente[pos+2]*kernel[ky+2][kx+2];
+        }
+      }
+      r = Math.min(255, Math.max(0, (r/divisor)+offset));
+      g = Math.min(255, Math.max(0, (g/divisor)+offset));
+      b = Math.min(255, Math.max(0, (b/divisor)+offset));
+      return [r,g,b];
+    }
+
+    // Aplica un kernel 7x7
+function aplicarKernel7x7(x,y,kernel,divisor=1,offset=0){
+  let r=0,g=0,b=0;
+  for (let ky=-3; ky<=3; ky++){
+    for (let kx=-3; kx<=3; kx++){
+      let pos = (((y+ky)*canvasFuente.width)+(x+kx))*4;
+      r += pixelesFuente[pos]*kernel[ky+3][kx+3];
+      g += pixelesFuente[pos+1]*kernel[ky+3][kx+3];
+      b += pixelesFuente[pos+2]*kernel[ky+3][kx+3];
+    }
+  }
+  r = Math.min(255, Math.max(0, (r/divisor)+offset));
+  g = Math.min(255, Math.max(0, (g/divisor)+offset));
+  b = Math.min(255, Math.max(0, (b/divisor)+offset));
+  return [r,g,b];
+}
+
+
+    // Aplica un kernel de color (transformación de canales RGB)
+    function aplicarColor(r,g,b,kernel,offset=0){
+      let nr = r*kernel[0][0] + g*kernel[0][1] + b*kernel[0][2];
+      let ng = r*kernel[1][0] + g*kernel[1][1] + b*kernel[1][2];
+      let nb = r*kernel[2][0] + g*kernel[2][1] + b*kernel[2][2];
+      nr = Math.min(255,Math.max(0,nr+offset));
+      ng = Math.min(255,Math.max(0,ng+offset));
+      nb = Math.min(255,Math.max(0,nb+offset));
+      return [nr,ng,nb];
+    }
+
+    // -------------------
+    // PROCESAMIENTO DE PIXELES
+    // -------------------
+    if(tipo==="outline"){ // Caso especial: kernel 5x5
+      for (var y=2; y<canvasFuente.height-2; y++){
+        for (var x=2; x<canvasFuente.width-2; x++){
+          var idx = ((y * canvasFuente.width) + x) * 4;
+          var [r,g,b] = aplicarKernel5x5(x,y,outline,256,0);
+          pixelesDestino[idx]=r;
+          pixelesDestino[idx+1]=g;
+          pixelesDestino[idx+2]=b;
+          pixelesDestino[idx+3]=255;
+        }
+      }
+    } else {
+      for (var y=1; y<canvasFuente.height-1; y++){
+        for (var x=1; x<canvasFuente.width-1; x++){
+          var idx = ((y * canvasFuente.width) + x) * 4;
+          var r = pixelesFuente[idx];
+          var g = pixelesFuente[idx+1];
+          var b = pixelesFuente[idx+2];
+
+          if (tipo in kernelsColor){ 
+            // Filtros de color (manipulan RGB directo)
+            [r,g,b] = aplicarColor(r,g,b,kernelsColor[tipo], tipo==="invert"?255:0);
+
+          } else if (tipo === "sobel"){
+            // Detección de bordes (gradiente X/Y)
+            var pixelX=0,pixelY=0;
+            for (var ky=-1; ky<=1; ky++){
+              for (var kx=-1; kx<=1; kx++){
+                var pos = (((y+ky)*canvasFuente.width)+(x+kx))*4;
+                var valor = (pixelesFuente[pos]+pixelesFuente[pos+1]+pixelesFuente[pos+2])/3;
+                pixelX += sobelH[ky+1][kx+1]*valor;
+                pixelY += sobelV[ky+1][kx+1]*valor;
+              }
+            }
+            var mag = Math.sqrt(pixelX*pixelX+pixelY*pixelY);
+            r=g=b=Math.min(255,mag);
+
+          } else if (tipo === "sharpen") [r,g,b] = aplicarKernel(x,y,sharpen);
+          else if (tipo === "emboss") [r,g,b] = aplicarKernel(x,y,emboss,1,128);
+          
+          else if (tipo === "blur") [r,g,b] = aplicarKernel7x7(x,y,blur,49);
+
+          else if (tipo === "edge") [r,g,b] = aplicarKernel(x,y,edge);
+
+          pixelesDestino[idx]=r;
+          pixelesDestino[idx+1]=g;
+          pixelesDestino[idx+2]=b;
+          pixelesDestino[idx+3]=255;
+        }
+      }
+    }
+
+    ctxDestino.putImageData(imgDataDestino,0,0);
+  }
+
+  // Descarga el resultado en PNG
+  function descargar(idCanvas,nombre){
+    var canvas=document.getElementById(idCanvas);
+    var enlace=document.createElement('a');
+    enlace.download=nombre+".png";
+    enlace.href=canvas.toDataURL();
+    enlace.click();
+  }
+</script>
+
+</body>
+</html>
